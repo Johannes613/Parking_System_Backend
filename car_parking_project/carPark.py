@@ -5,7 +5,6 @@ import pickle
 width = 107
 height = 48
 
-
 try:
     with open("CarParkPos", "rb") as f:
         posList = pickle.load(f)
