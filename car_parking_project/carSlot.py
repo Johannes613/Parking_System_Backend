@@ -3,19 +3,22 @@ from flask_cors import CORS
 import cv2
 import pickle
 import numpy as np
-import cvzone
+import threading
+import time
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend communication
+CORS(app)
 
-cap = cv2.VideoCapture("carPark.mp4")
-
+# Load parking positions
 with open("CarParkPos", "rb") as f:
     posList = pickle.load(f)
-    # print(f"Loaded {len(posList)} parking positions.")
-    # print("Parking positions:", posList)
 
+# Video capture setup
+cap = cv2.VideoCapture("carPark.mp4")
 width, height = 107, 48
+
+# Global variable to store latest status
+latest_status = []
 
 def analyze_frame():
     if cap.get(cv2.CAP_PROP_POS_FRAMES) == cap.get(cv2.CAP_PROP_FRAME_COUNT):
@@ -43,8 +46,6 @@ def get_parking_status(imgPro):
         x, y = pos
         imgCrop = imgPro[y: y + height, x: x + width]
         count = cv2.countNonZero(imgCrop)
-        
-      
 
         status = "Available" if count < 900 else "Occupied"
         spaceCounter += 1 if status == "Available" else 0
@@ -55,15 +56,23 @@ def get_parking_status(imgPro):
             "status": status,
             "basement": basement
         })
-        print("avilable count:", spaceCounter,"occupied count:", len(posList) - spaceCounter)
-      
+
+    print(f"Available: {spaceCounter}, Occupied: {len(posList) - spaceCounter}")
     return status_list
+
+def video_processing_loop():
+    global latest_status
+    while True:
+        latest_status = analyze_frame()
+
 
 @app.route('/api/parking-slots', methods=['GET'])
 def parking_slots():
-    status_list = analyze_frame()
-    return jsonify(status_list)
-
+    return jsonify(latest_status)
 
 if __name__ == '__main__':
+    thread = threading.Thread(target=video_processing_loop)
+    thread.daemon = True  # Ensures thread exits with main program
+    thread.start()
+
     app.run(debug=True)
