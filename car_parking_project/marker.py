@@ -26,7 +26,7 @@ def mouseClick(events, x, y, flags, params):
 
 
 while True:
-    img = cv2.imread("real.png")
+    img = cv2.imread("simulated.png")
     # cv2.rectangle(img,(50,192),(157,240),(255,0,255),2)
     for pos in posList:
         cv2.rectangle(img, pos, (pos[0] + width, pos[1] + height), (255, 0, 255), 2)
